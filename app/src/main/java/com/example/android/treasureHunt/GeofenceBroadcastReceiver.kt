@@ -38,6 +38,39 @@ class GeofenceBroadcastReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         // TODO: Step 11 implement the onReceive method
+        if(intent.action == ACTION_GEOFENCE_EVENT){
+            val geoFencingEvent = GeofencingEvent.fromIntent(intent)
+            if(geoFencingEvent.hasError()){
+                val errorMessage = errorMessage(context, geoFencingEvent.errorCode)
+                Log.e(TAG, errorMessage)
+                return
+            }
+            if(geoFencingEvent.geofenceTransition == Geofence.GEOFENCE_TRANSITION_ENTER){
+                val fenceId = when {
+                    geoFencingEvent.triggeringGeofences.isNotEmpty() ->
+                        geoFencingEvent.triggeringGeofences[0].requestId
+                    else -> {
+                        Log.e(TAG, "No Geofence Trigger Found! Abort mission!")
+                        return
+                    }
+                }
+                val foundIndex = GeofencingConstants.LANDMARK_DATA.indexOfFirst {
+                    it.id == fenceId
+                }
+                if ( -1 == foundIndex ) {
+                    Log.e(TAG, "Unknown Geofence: Abort Mission")
+                    return
+                }
+                val notificationManager = ContextCompat.getSystemService(
+                        context,
+                NotificationManager::class.java
+                ) as NotificationManager
+
+                notificationManager.sendGeofenceEnteredNotification(
+                    context, foundIndex
+                )
+            }
+        }
     }
 }
 
